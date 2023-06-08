@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MuscleMotivator</title>
+    <style>
+        .remove{
+            background-color: yellow;
+            border: 1px solid ;
+            border-radius: 20px;
+            width: 50%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .delete{
+            font-size: 22px;
+            background-color: red;
+            color: white;
+            border-radius: 10px;
+        }
+        .strong{
+            background-color: orange;
+            border: 1px solid ;
+            border-radius: 20px;
+            width: 50%;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        input{
+            display: block;
+        }
+        
+    </style>
+</head>
+
+<body>
+    <audio src="strong.mp3" id="big"></audio>
+    <button id="out">ログアウト</button>
+    <h2 id="status"> Login... </h2>
+    <!-- コンテンツ表示画面 -->
+    <div>
+        <div>
+            名前：<span id="name"></span><br>
+            <img src="" id="prof">
+        </div>
+        <div>
+            トレーニング部位：<input type="text" id="uname">
+        </div>
+        <div>
+            種目①：<input type="text" id="one">
+            種目②：<input type="text" id="two">
+            種目③：<input type="text" id="three">
+            <button id="send">送信</button>
+        </div>
+        <div id="output" style="overflow: auto;height: 500px;"></div>
+    </div>
+
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script type="module">
+        
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } 
+        from "https://www.gstatic.com/firebasejs/9.13.0/firebase-app.js";
+        import { getDatabase, ref, push, set, onValue, onChildAdded, remove, onChildRemoved } 
+        from "https://www.gstatic.com/firebasejs/9.13.0/firebase-database.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } 
+        from "https://www.gstatic.com/firebasejs/9.13.0/firebase-auth.js";
+
+
+
+    // Your web app's Firebase configuration
+    //###############################################
+    //FirebaseConfig [ KEYを取得して設定！！ ]
+    //###############################################
+    const firebaseConfig = {
+       // 自身のAPIキーは削除しています
+    };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app); //RealtimeDBに接続
+    
+       //###############################################
+        //GoogleAuth用
+        //###############################################
+        const provider = new GoogleAuthProvider();
+        provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
+        const auth = getAuth();
+        
+        //###############################################
+            //Loginしていれば処理します
+            //###############################################
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                 
+                    //ユーザー情報取得できます
+                    if (user !== null) {
+                        user.providerData.forEach((profile) => {
+                            //Login情報取得
+                            $("#name").text(profile.displayName);
+                            $("#prof").attr("src",profile.photoURL);
+                    
+                        });
+                        $("#status").fadeOut(500);
+                        } 
+
+
+        //データ登録(Click)
+        $("#send").on("click", function(){
+            
+            const unameVal = $("#uname").val();
+            const oneVal = $("#one").val();
+            const twoVal = $("#two").val();
+            const threeVal = $("#three").val();
+            //オブジェクトを作成
+            const msg = {
+            uname: unameVal,
+            one: oneVal,
+            two: twoVal,
+            three: threeVal    
+        }    
+
+        big.play();
+        const uid = auth.currentUser.uid;
+        const dbRef = ref(db, "users/" + uid + "/chat/");
+        const newPostRef = push(dbRef);
+            set(newPostRef, msg);  //DBに値をセットする
+     
+        // 文字を空にする
+        $("#uname").val("");
+        $("#one").val("");
+        $("#two").val("");
+        $("#three").val("");
+        });
+        const uid = auth.currentUser.uid;
+        const dbRef = ref(db, "users/" + uid + "/chat/");
+        onChildAdded(dbRef,function(data){
+            const msg = data.val(); //オブジェクトデータを取得している
+            const key = data.key;//ユニークキーデータを取得している
+            // console.log(key); //keyの中身を確認している
+
+            // for(let i = 0; i<data.length ;i++){
+                let html = `
+                <div id="remove_${key}" class="remove">
+                <h1 class="test">
+                <h2>${msg.uname}</h2>
+                <h3>${msg.one}</h3>
+                <h3>${msg.two}</h3>
+                <h3>${msg.three}</h3>
+                <button id="${key}" class="delete">削除</button>
+                </h1>
+                </div>
+                `;
+                $("#output").append(html);
+                
+
+                const strong =[
+                "アーノルド・シュワルツェネッガー：<br>筋肉がNOと言ったら私はYES！と答える。",
+                "ロニー・コールマン：<br>真のトレーニングとはやめたいと思った時から始まる。",
+                "ドウェイン・ジョンソン：<br>俺の過去の辛かった時期を今の俺のモチベーションにすることが好きだ。",
+                "ジェレミー・ブエンディア：<br>完璧な体のために行動しなきゃダメだ。ソファーに座ってるだけではそれは叶わない。",
+                "ドリアン・イエーツ：<br>今見知らぬ男がドアから入ってきて、君のこめかみに拳銃を突きつけて「あと2回やれ」と言ったらどうする？死に物狂いでやるだろう？追い込むことはそういうことだ。",
+                "マッスル北村：<br>愛という動機を持たない物質が災いであるのと同様に、愛のない筋肉もまた災いなのかもしれない。",
+                "なかやまきんに君：<br>負け続けても筋トレだけは辞めなかった。 やり続ければ必ず成長出来る。 成長出来れば必ず勝てる。 また負けても諦めずにやり続けるだけ。 真剣にやればそこに必ず成長はある。",
+                "武井壮：<br>凹んでいるヒマあったら鍛える。",
+                "谷本道哉：<br>筋トレできつくなったときは、頑張るか、頑張れないかではありません。頑張るか、超頑張るかの2択で考えて下さい。"
+                ]
+                let r = Math.floor(Math.random()* strong.length);
+                let st = "";
+                switch(r){
+                    case 1:
+                    st = strong[0]
+                    break;
+                    case 2:
+                    st = strong[1]
+                    break;
+                    case 3:
+                    st = strong[2]
+                    break;
+                    case 4:
+                    st = strong[3]
+                    break;
+                    case 5: 
+                    st = strong[4]
+                    break;
+                    case 6:
+                    st = strong[5]
+                    break;
+                    case 7: 
+                    st = strong[6]
+                    break;
+                    case 8: 
+                    st = strong[7]
+                    break;
+                    case 9: 
+                    st = strong[8]
+                    break;
+                }
+               
+                console.log(st);
+                let random = `
+                <div class="strong">
+                <h1 class="test">
+                <h2>${st}</h2>
+                </h1>
+                </div>
+                `;
+                $("#output").append(random);
+        });
+
+
+//###############################################
+//ボタンを押した時に投稿内容を削除したい
+//###############################################
+        
+        $(document).on('click','.delete',function(){
+            // alert("削除しますか？");
+            const id = $(this).attr("id"); //削除ボタンに付随しているユニークキーを取得
+            const uid = auth.currentUser.uid;
+            remove(ref(db, "users/" + uid + "/chat/" + id)); //keyを把握して削除が必要。データベースの中のchat/keyの階層で削除する必要がある
+            $(`#remove_${id}`).css('display', 'none');
+        });
+    } else {
+            _redirect();  // User is signed out
+            }
+            });
+
+
+//###############################################
+//Logout処理
+//###############################################
+$("#out").on("click", function () {
+    // signInWithRedirect(auth, provider);
+    signOut(auth).then(() => {
+        // Sign-out successful.
+        _redirect();
+    }).catch((error) => {
+        // An error happened.
+        console.error(error);
+        _redirect();
+    });
+});
+
+
+//###############################################
+//Login画面へリダイレクト(関数作成)
+//###############################################
+function _redirect(){
+    location.href="login.html";
+}
+
+    </script>
+</body>
+
+</html>
